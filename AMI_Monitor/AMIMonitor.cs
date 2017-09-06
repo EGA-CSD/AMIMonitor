@@ -7,30 +7,59 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Configuration;
 using System.Threading.Tasks;
 
 namespace ReadConfig
 {
     class AMI_Monitor
-    {
+    {   
+        enum config {address = 0, durationTime = 1 };
+        enum addr{ hostname = 0, port = 1 };
         private CultureInfo cultureEN;
         private List<AMIServer> list_AMIServer;
         private AvailableInfo info;
-
+        
         public void run()
         {
-            // Read Configuration
             this.list_AMIServer = new List<AMIServer>();
 
-            list_AMIServer.Add(new AMIServer("192.168.243.137", 59000));
-            checkAMIServer((AMIServer)list_AMIServer.First<AMIServer>());
+            // Read Configuration
+            readConf();
+            foreach (var amiserver in list_AMIServer)
+            {
+                checkAMIServer(amiserver);
+            }
+        }
+
+        private void readConf() {
+            // Read Configuration
+            this.list_AMIServer = new List<AMIServer>();
+            foreach (string key in ConfigurationManager.AppSettings) {
+                String value = ConfigurationManager.AppSettings[key];
+                String[] values = value.Split(',');
+                String[] host_port = values[(int)config.address].Split(':');
+                Console.WriteLine("key: "+ key +"value : " + value+" host: "+host_port[(int)addr.hostname]+", port:"+host_port[(int)addr.port]+", time: "+values[1]);
+                this.list_AMIServer.Add(new AMIServer(key, host_port[(int)addr.hostname], int.Parse(host_port[(int)addr.port])));
+                
+            }
         }
 
         private void checkAMIServer(AMIServer amiServer)
         {
             bool flag = false;
+            IPEndPoint remoteEP;
             this.WriteLog(amiServer, "Initiailize server Host: " + amiServer.Host + ", port : "+amiServer.Port);
-            IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse(amiServer.Host), amiServer.Port);
+
+            try
+            {
+                remoteEP = new IPEndPoint(IPAddress.Parse(amiServer.Host), amiServer.Port);
+            }
+            catch (Exception ex) {
+                this.WriteLog(amiServer, ex.Message);
+                return;
+            }
+
             using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
             {
                 try
@@ -94,9 +123,16 @@ namespace ReadConfig
                     Available = false
                 };
             }
+            else {
+                // Validate RetunCode and notify to line 
+                if(false) {
+                    sendLineNotification(amiServer){ }
+                }
+                    
+            }
         }
 
-        private void sendLineNotification() { }
+        private void sendLineNotification(AMIServer amiServer) { }
 
         private void WriteLog(AMIServer amiServer, string log)
         {
@@ -110,7 +146,7 @@ namespace ReadConfig
                 {
                     Directory.CreateDirectory("Log");
                 }
-                System.IO.File.AppendAllText(string.Concat(new object[] { "Log/AMI_Monitor.", amiServer.Port, ".", DateTime.Now.ToString("yyyyMMdd", cultureEN), ".log" }), str + str2 + "\r\n");
+                System.IO.File.AppendAllText(string.Concat(new object[] { "Log/AMI_Monitor.", amiServer.Name,'-',amiServer.Host,"-",amiServer.Port, ".", DateTime.Now.ToString("yyyyMMdd", cultureEN), ".log" }), str + str2 + "\r\n");
             }
             catch (Exception ex)
             {

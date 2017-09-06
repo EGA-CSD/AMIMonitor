@@ -10,12 +10,15 @@ namespace ReadConfig
     {
         private String host = "127.0.0.1";
         private int port = 59000;
-        private long time_stamp;
+        private String name = "Undefined";
+        private long time_stamp = 0;
         public string Host { get => host; set => host = value; }
         public int Port { get => port; set => port = value; }
         public long Time_stamp { get => time_stamp; set => time_stamp = value; }
+        public string Name { get => name; set => name = value; }
+
         public AMIServer() {}
-        public AMIServer(String host, int port) { this.host = host; this.port = port; }
+        public AMIServer(String name, String host, int port) { this.Name = name; this.host = host; this.port = port; }
 
     }
 }
