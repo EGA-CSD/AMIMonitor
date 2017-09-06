@@ -9,7 +9,7 @@ using System.Net.Sockets;
 using System.IO;
 using System.Globalization;
 
-namespace ReadConfig
+namespace AMI_Monitor
 {
     class Program
     {
@@ -17,6 +17,7 @@ namespace ReadConfig
         {
             AMI_Monitor ami_monitor = new AMI_Monitor();
             ami_monitor.run();
+            Console.ReadKey();
         }
     }
 }

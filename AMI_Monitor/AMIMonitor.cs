@@ -8,9 +8,10 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Configuration;
-using System.Threading.Tasks;
+using System.Threading;
+using System.Timers;
 
-namespace ReadConfig
+namespace AMI_Monitor
 {
     class AMI_Monitor
     {   
@@ -30,6 +31,8 @@ namespace ReadConfig
             {
                 checkAMIServer(amiserver);
             }
+
+
         }
 
         private void readConf() {
@@ -43,6 +46,12 @@ namespace ReadConfig
                 this.list_AMIServer.Add(new AMIServer(key, host_port[(int)addr.hostname], int.Parse(host_port[(int)addr.port])));
                 
             }
+        }
+
+        private void callback_checkAMIServer(Object myObject , ElapsedEventArgs elapsedEventArgs) {
+
+            checkAMIServer((AMIServer)myObject);
+ 
         }
 
         private void checkAMIServer(AMIServer amiServer)
@@ -126,7 +135,7 @@ namespace ReadConfig
             else {
                 // Validate RetunCode and notify to line 
                 if(false) {
-                    sendLineNotification(amiServer){ }
+                    sendLineNotification(amiServer);
                 }
                     
             }
@@ -153,5 +162,16 @@ namespace ReadConfig
                 Console.WriteLine("Error while writting log file : " + ex.Message);
             }
         }
+
+        private static void TimeEventProcessor()
+        {
+            while (true)
+            {
+                Console.WriteLine("Hellow World");
+                Thread.Sleep(1000);
+            }
+        }
+
+
     }
 }

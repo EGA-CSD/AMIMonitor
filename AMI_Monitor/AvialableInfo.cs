@@ -1,4 +1,4 @@
-﻿namespace ReadConfig
+﻿namespace AMI_Monitor
 {
     using System;
     using System.IO;
