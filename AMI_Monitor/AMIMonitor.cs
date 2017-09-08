@@ -59,10 +59,12 @@ namespace AMI_Monitor
             this.WriteLog(amiServer, "Initiailize Service="+amiServer.Name+", Host:" + amiServer.Host + ", Port="+amiServer.Port+", DurationTime="+amiServer.DurationTime);
             while (amiServer.State == AMIServer.state_enum.running)
             {
-                Thread.Sleep(2);
-                if (DateTime.Now.Subtract(amiServer.TimeStmap).Seconds >= amiServer.DurationTime ) {
+                Thread.Sleep(1000);
+                DateTime dateTime = DateTime.Now;
+                double diff = dateTime.Subtract(amiServer.TimeStmap).TotalSeconds;
+                if (diff >= amiServer.DurationTime ) {
                     amiServer.TimeStmap = DateTime.Now;
-                    //Console.WriteLine("Servcie {0} sending request", amiServer.Name);
+                    Console.WriteLine("Servcie {0} sending request", amiServer.Name);
                     try
                     {
                         remoteEP = new IPEndPoint(IPAddress.Parse(amiServer.Host), amiServer.Port);
