@@ -16,39 +16,37 @@ namespace AMI_Monitor
 {
     class AMI_Monitor
     {   
-        enum config {address = 0, durationTime = 1 };
-        enum addr{ hostname = 0, port = 1 };
         private CultureInfo cultureEN;
-        private List<AMIServer> list_AMIServer;
+        private List<AMIServer> list_AMIServer = new List<AMIServer>();
         private AvailableInfo info;
-        LinkedList<Task> allTask = new LinkedList<Task>();
-        
+        private LinkedList<Task> allTask = new LinkedList<Task>();
+        static bool shutdownStatus = false;
+
         public void run()
         {
-            this.list_AMIServer = new List<AMIServer>();
 
             // Read Configuration
             readConf();
+
             foreach (var amiserver in list_AMIServer)
             {
                 amiserver.State = AMIServer.state_enum.running;
                 Task T = new Task(checkAMIServer, amiserver);
                 allTask.AddLast(T);
                 T.Start();
-                //checkAMIServer(amiserver);
             }
+
             CommandLine();
         }
 
         private void readConf() {
-            // Read Configuration
-            this.list_AMIServer = new List<AMIServer>();
             foreach (string key in ConfigurationManager.AppSettings) {
                 String value = ConfigurationManager.AppSettings[key];
                 String[] values = value.Split(',');
-                String[] host_port = values[(int)config.address].Split(':');
-                Console.WriteLine("key: "+ key +"value : " + value+" host: "+host_port[(int)addr.hostname]+", port:"+host_port[(int)addr.port]+", time: "+values[1]);
-                this.list_AMIServer.Add(new AMIServer(key, host_port[(int)addr.hostname], int.Parse(host_port[(int)addr.port])));
+                String[] host_port = values[(int)AMIServer.config_en.address].Split(':');
+                String str = "key=" + key + ", value=" + value + " ==> host=" + host_port[(int)AMIServer.config_en.hostname] + ", port=" + host_port[(int)AMIServer.config_en.port] + ", duration time=" + values[(int)AMIServer.config_en.durationTime] ;
+                Console.WriteLine(str);
+                this.list_AMIServer.Add(new AMIServer(key, host_port[(int)AMIServer.config_en.hostname], int.Parse(host_port[(int)AMIServer.config_en.port]),int.Parse(values[(int)AMIServer.config_en.durationTime])));
                 
             }
         }
@@ -58,102 +56,127 @@ namespace AMI_Monitor
             AMIServer amiServer = (AMIServer)obj;
             bool flag = false;
             IPEndPoint remoteEP;
-            this.WriteLog(amiServer, "Initiailize server Host: " + amiServer.Host + ", port : "+amiServer.Port);
-            while ( amiServer.State == AMIServer.state_enum.running )
+            this.WriteLog(amiServer, "Initiailize Service="+amiServer.Name+", Host:" + amiServer.Host + ", Port="+amiServer.Port+", DurationTime="+amiServer.DurationTime);
+            while (amiServer.State == AMIServer.state_enum.running)
             {
-                Thread.Sleep(100);
-                Console.WriteLine("Servcie {0} sending request", amiServer.Name);
-                try
-                {
-                    remoteEP = new IPEndPoint(IPAddress.Parse(amiServer.Host), amiServer.Port);
-                }
-                catch (Exception ex)
-                {
-                    this.WriteLog(amiServer, ex.Message);
-                    return;
-                }
-
-                using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
-                {
+                Thread.Sleep(2);
+                if (DateTime.Now.Subtract(amiServer.TimeStmap).Seconds >= amiServer.DurationTime ) {
+                    amiServer.TimeStmap = DateTime.Now;
+                    //Console.WriteLine("Servcie {0} sending request", amiServer.Name);
                     try
                     {
-                        int millisecondsTimeout = 0xbb8;
-                        socket.SendTimeout = millisecondsTimeout;
-                        socket.ReceiveTimeout = millisecondsTimeout;
-                        if (!socket.BeginConnect(remoteEP, null, null).AsyncWaitHandle.WaitOne(millisecondsTimeout, false))
-                        {
-                            throw new SocketException(0x274c);
-                        }
-                        this.WriteLog(amiServer, "Connect: Success");
+                        remoteEP = new IPEndPoint(IPAddress.Parse(amiServer.Host), amiServer.Port);
                     }
-                    catch (Exception exception)
+                    catch (Exception ex)
                     {
-                        flag = true;
-                        this.WriteLog(amiServer, "Connect: Error " + exception.Message);
+                        this.WriteLog(amiServer, ex.Message);
+                        return;
                     }
-                    if (!flag)
+
+                    using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
                     {
                         try
                         {
-                            string s = "000100,0";
-                            byte[] bytes = Encoding.UTF8.GetBytes(s);
-                            socket.Send(bytes, bytes.Length, SocketFlags.None);
-                            try
+                            int millisecondsTimeout = 0xbb8;
+                            socket.SendTimeout = millisecondsTimeout;
+                            socket.ReceiveTimeout = millisecondsTimeout;
+                            if (!socket.BeginConnect(remoteEP, null, null).AsyncWaitHandle.WaitOne(millisecondsTimeout, false))
                             {
-                                bytes = new byte[1024];
-                                int count = socket.Receive(bytes);
-                                string str2 = Encoding.UTF8.GetString(bytes, 0, count);
-                                this.WriteLog(amiServer, "Response: " + str2);
-                                info = JsonConvert.DeserializeObject<AvailableInfo>(str2);
+                                throw new SocketException(0x274c);
                             }
-                            catch (Exception exception2)
-                            {
-                                this.WriteLog(amiServer, "Response: Error " + exception2.Message);
-                            }
+                            this.WriteLog(amiServer, "Connect: Success");
                         }
-                        catch (Exception exception3)
+                        catch (Exception exception)
                         {
                             flag = true;
-                            this.WriteLog(amiServer, "Request: Error " + exception3.Message);
+                            this.WriteLog(amiServer, "Connect: Error " + exception.Message);
                         }
-                        try
+                        if (!flag)
                         {
-                            socket.Shutdown(SocketShutdown.Both);
-                            this.WriteLog(amiServer, "Disconnect: Success");
-                        }
-                        catch (Exception exception4)
-                        {
-                            this.WriteLog(amiServer, "Disconnect: Error " + exception4.Message);
+                            try
+                            {
+                                string s = "000100,0";
+                                byte[] bytes = Encoding.UTF8.GetBytes(s);
+                                socket.Send(bytes, bytes.Length, SocketFlags.None);
+                                try
+                                {
+                                    bytes = new byte[1024];
+                                    int count = socket.Receive(bytes);
+                                    string str2 = Encoding.UTF8.GetString(bytes, 0, count);
+                                    this.WriteLog(amiServer, "Response: " + str2);
+                                    info = JsonConvert.DeserializeObject<AvailableInfo>(str2);
+                                }
+                                catch (Exception exception2)
+                                {
+                                    this.WriteLog(amiServer, "Response: Error " + exception2.Message);
+                                }
+                            }
+                            catch (Exception exception3)
+                            {
+                                flag = true;
+                                this.WriteLog(amiServer, "Request: Error " + exception3.Message);
+                            }
+                            try
+                            {
+                                socket.Shutdown(SocketShutdown.Both);
+                                this.WriteLog(amiServer, "Disconnect: Success");
+                            }
+                            catch (Exception exception4)
+                            {
+                                this.WriteLog(amiServer, "Disconnect: Error " + exception4.Message);
+                            }
                         }
                     }
-                }
-                if (info == null)
-                {
-                    info = new AvailableInfo
+                    
+                    if (info == null)
                     {
-                        ReturnCode = "X0003",
-                        ReturnMessage = "Can't connect to AMI Connector",
-                        Available = false
-                    };
-                }
-                else
-                {
+                        info = new AvailableInfo
+                        {
+                            ReturnCode = "X0003",
+                            ReturnMessage = "Can't connect to AMI Connector",
+                            Available = false
+                        };
+                    }
+
+                    Console.WriteLine(info.ReturnCode + ", " + info.ReturnMessage);
                     // Validate RetunCode and notify to line 
-                    if (false)
+                    if (info.ReturnCode == "X0003" || info.ReturnCode == "X0001")
                     {
-                        sendLineNotification(amiServer);
+                        String warningMessage = "[AMIChecker]: " + amiServer.Name + " " + amiServer.Host + ":" + amiServer.Port + " : " + info.ReturnMessage;
+                        Console.WriteLine(warningMessage);
+                        sendLineNotification(amiServer, warningMessage);
                     }
 
                 }
             }
+            Console.WriteLine("Service {0} {1}:{2} stoped", amiServer.Name, amiServer.Host, amiServer.Port);
             Thread.CurrentThread.Abort();
         }
 
-        private void sendLineNotification(AMIServer amiServer) { }
+        private void sendLineNotification(AMIServer amiServer, String argMsg) {
+            var request = (HttpWebRequest)WebRequest.Create("https://notify-api.line.me/api/notify");
+            var postData = string.Format("message={0}", argMsg);
+            var data = Encoding.UTF8.GetBytes(postData);
+
+            request.Method = "POST";
+            request.ContentType = "application/x-www-form-urlencoded";
+            request.ContentLength = data.Length;
+            request.Headers.Add("Authorization", "Bearer 5MIkfmCenOQ57YoCCq5F2pg0DycCfLjP5B3IdrUbxKs"); //KlPhgOKMqBYSuLsZBLAY7uUCXD1s0jEjwHfbUPbQE0I
+            //request.Headers.Add("Authorization", "Bearer TRp6byyCsJG7S2poh5ON3zdH88SSm3LMffZ1fXy8o1H"); //KlPhgOKMqBYSuLsZBLAY7uUCXD1s0jEjwHfbUPbQE0I
+            using (var stream = request.GetRequestStream())
+            {
+                stream.Write(data, 0, data.Length);
+            }
+
+            var response = (HttpWebResponse)request.GetResponse();
+            var responseString = new StreamReader(response.GetResponseStream()).ReadToEnd();
+
+            Console.WriteLine("\r\n{0} \r\n", responseString);
+        }
 
         private void WriteLog(AMIServer amiServer, string log)
         {
-            Console.WriteLine(log);
+            //Console.WriteLine(log);
             try
             {
                 cultureEN = new CultureInfo("en-US");
@@ -173,7 +196,7 @@ namespace AMI_Monitor
 
         private void CommandLine()
         {
-            while (true)
+            while (!shutdownStatus)
             {
                 String input = Console.ReadLine();
                 String[] cmd = input.Split(' ');
@@ -202,22 +225,35 @@ namespace AMI_Monitor
                             Console.WriteLine("Invalid parameter");
                         }
                         break;
+                    case "exit":
+                        shutdown();
                         break;
                     default:
                         help();
                         break;
-
                 }
             }
+        }
+
+        private void shutdown()
+        {
+            foreach (Task T in allTask) {
+                AMIServer server = (AMIServer)T.AsyncState;
+                Console.WriteLine("Service {0} is stoping", server.Name);
+                server.State = AMIServer.state_enum.stop;
+            }
+            shutdownStatus = true;
         }
 
         private void status() {
             foreach (Task T in allTask) {
                 AMIServer server = (AMIServer)T.AsyncState;
-                Console.WriteLine("Service {0} are running", server.Name);
+                Console.WriteLine("Service {0} is running", server.Name);
             }
         }
+
         private void start(String service) { }
+
         private void stop(String service) {
             foreach (Task T in allTask)
             {
@@ -226,19 +262,20 @@ namespace AMI_Monitor
                 {
                     server.State = AMIServer.state_enum.stop;
                     allTask.Remove(T);
-                    Console.WriteLine("Service {0} stopped", service);
                     return;
                 }
             }
-            Console.WriteLine("Service {0} doesn't run yet", service);
+            Console.WriteLine("Service {0} has not run yet", service);
         }
+
         private void help() {
-            Console.WriteLine("========================================================");
-            Console.WriteLine("=================Command================================");
-            Console.WriteLine("| Start <Service>, Use for starting new service.       |");
-            Console.WriteLine("| Stop <Service>, Use for stop the running service.    |");
-            Console.WriteLine("| Status, display all of the running services.         |");
-            Console.WriteLine("========================================================");
+            Console.WriteLine("=========================================================");
+            Console.WriteLine("======================:: Command ::======================");
+            Console.WriteLine("| start <Service>| Use for starting new service.        |");
+            Console.WriteLine("| stop <Service> | Use for stop the running service.    |");
+            Console.WriteLine("| status         | Display all of the running services. |");
+            Console.WriteLine("| exit           | Close all service and exit program.  |");
+            Console.WriteLine("=========================================================");
         }
     }
 }
