@@ -21,7 +21,7 @@ namespace AMI_Monitor
         private AvailableInfo info;
         private LinkedList<Task> allTask = new LinkedList<Task>();
         static bool shutdownStatus = false;
-
+        static String lineToken = "5MIkfmCenOQ57YoCCq5F2pg0DycCfLjP5B3IdrUbxKs";
         public void run()
         {
 
@@ -40,14 +40,21 @@ namespace AMI_Monitor
         }
 
         private void readConf() {
-            foreach (string key in ConfigurationManager.AppSettings) {
+            foreach (string key in ConfigurationManager.AppSettings)
+            {
                 String value = ConfigurationManager.AppSettings[key];
-                String[] values = value.Split(',');
-                String[] host_port = values[(int)AMIServer.config_en.address].Split(':');
-                String str = "key=" + key + ", value=" + value + " ==> host=" + host_port[(int)AMIServer.config_en.hostname] + ", port=" + host_port[(int)AMIServer.config_en.port] + ", duration time=" + values[(int)AMIServer.config_en.durationTime] ;
-                Console.WriteLine(str);
-                this.list_AMIServer.Add(new AMIServer(key, host_port[(int)AMIServer.config_en.hostname], int.Parse(host_port[(int)AMIServer.config_en.port]),int.Parse(values[(int)AMIServer.config_en.durationTime])));
-                
+                if (key != "token")
+                {
+                    String[] values = value.Split(',');
+                    String[] host_port = values[(int)AMIServer.config_en.address].Split(':');
+                    String str = "key=" + key + ", value=" + value + " ==> host=" + host_port[(int)AMIServer.config_en.hostname] + ", port=" + host_port[(int)AMIServer.config_en.port] + ", duration time=" + values[(int)AMIServer.config_en.durationTime];
+                    Console.WriteLine(str);
+                    this.list_AMIServer.Add(new AMIServer(key, host_port[(int)AMIServer.config_en.hostname], int.Parse(host_port[(int)AMIServer.config_en.port]), int.Parse(values[(int)AMIServer.config_en.durationTime])));
+                }
+                else {
+                    Console.WriteLine("Key={0} value={1}", key, value);
+                    lineToken = value;
+                }
             }
         }
 
@@ -163,7 +170,8 @@ namespace AMI_Monitor
             request.Method = "POST";
             request.ContentType = "application/x-www-form-urlencoded";
             request.ContentLength = data.Length;
-            request.Headers.Add("Authorization", "Bearer 5MIkfmCenOQ57YoCCq5F2pg0DycCfLjP5B3IdrUbxKs"); //KlPhgOKMqBYSuLsZBLAY7uUCXD1s0jEjwHfbUPbQE0I
+            String tokenStr = "Bearer " + lineToken;
+            request.Headers.Add("Authorization", tokenStr); //KlPhgOKMqBYSuLsZBLAY7uUCXD1s0jEjwHfbUPbQE0I
             //request.Headers.Add("Authorization", "Bearer TRp6byyCsJG7S2poh5ON3zdH88SSm3LMffZ1fXy8o1H"); //KlPhgOKMqBYSuLsZBLAY7uUCXD1s0jEjwHfbUPbQE0I
             using (var stream = request.GetRequestStream())
             {
@@ -274,7 +282,7 @@ namespace AMI_Monitor
             Console.WriteLine("=========================================================");
             Console.WriteLine("======================:: Command ::======================");
             Console.WriteLine("| start <Service>| Use for starting new service.        |");
-            Console.WriteLine("| stop <Service> | Use for stop the running service.    |");
+            Console.WriteLine("| stop <Service> | Use for stopping the running service.|");
             Console.WriteLine("| status         | Display all of the running services. |");
             Console.WriteLine("| exit           | Close all service and exit program.  |");
             Console.WriteLine("=========================================================");
