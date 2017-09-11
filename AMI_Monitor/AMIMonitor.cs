@@ -153,13 +153,14 @@ namespace AMI_Monitor
                         };
                     }
 
-                    Console.WriteLine(info.ReturnCode + ", " + info.ReturnMessage);
+                    String warningMessage = "[AMIChecker]: " + amiServer.Name + " " + amiServer.Host + ":" + amiServer.Port + " : " +"("+info.ReturnCode+") "+ info.ReturnMessage;
+                    Console.WriteLine(warningMessage);
+
                     // Validate RetunCode and notify to line 
                     if (info.ReturnCode == "X0003" || info.ReturnCode == "X0001")
                     {
-                        String warningMessage = "[AMIChecker]: " + amiServer.Name + " " + amiServer.Host + ":" + amiServer.Port + " : " + info.ReturnMessage;
-                        Console.WriteLine(warningMessage);
                         sendLineNotification(amiServer, warningMessage);
+                        this.WriteLog(amiServer, warningMessage);
                     }
 
                 }
@@ -187,7 +188,7 @@ namespace AMI_Monitor
             var response = (HttpWebResponse)request.GetResponse();
             var responseString = new StreamReader(response.GetResponseStream()).ReadToEnd();
 
-            Console.WriteLine("\r\n{0} \r\n", responseString);
+            Console.WriteLine("Sent line notification... \r\n{0} \r\n", responseString);
         }
 
         private void WriteLog(AMIServer amiServer, string log)
@@ -282,7 +283,7 @@ namespace AMI_Monitor
         }
 
         private void start(String service, String address) {
-            Console.WriteLine("Service : " + service+" address"+address);
+            Console.WriteLine("Starting Service : " + service+", address : "+address);
             String[] settings = address.Split(',');
             String[] host_port = settings[(int)AMIServer.config_en.address].Split(':');
             AMIServer amiServer = new AMIServer(service, host_port[(int)AMIServer.config_en.hostname], int.Parse(host_port[(int)AMIServer.config_en.port]), int.Parse(settings[(int)AMIServer.config_en.durationTime]));
