@@ -15,7 +15,11 @@ using System.Threading.Tasks;
 namespace AMI_Monitor
 {
     class AMI_Monitor
-    {   
+    {
+        public static String APP_NAME = "AMI Monitoring";
+        public static String APP_VERSION = "1.0.0";
+        public static String APP_DESC = "Initialize AMI Server Monitoring";
+
         private CultureInfo cultureEN;
         private List<AMIServer> list_AMIServer = new List<AMIServer>();
         private LinkedList<Task> allTask = new LinkedList<Task>();
@@ -23,6 +27,7 @@ namespace AMI_Monitor
         static String lineToken = "5MIkfmCenOQ57YoCCq5F2pg0DycCfLjP5B3IdrUbxKs";
         public void run()
         {
+            version();
 
             // Read Configuration
             readConf();
@@ -245,7 +250,14 @@ namespace AMI_Monitor
                     case "exit":
                         shutdown();
                         break;
+                    case "version":
+                        version();
+                        break;
+                    case "help":
+                        help();
+                        break;
                     default:
+                        version();
                         help();
                         break;
                 }
@@ -296,14 +308,20 @@ namespace AMI_Monitor
         }
 
         private void help() {
-            Console.WriteLine("=================================================================================");
-            Console.WriteLine("==================================:: Command ::==================================");
-            Console.WriteLine("=================================================================================");
-            Console.WriteLine("| start <Service> <IP:PORT,durationTime> | Use for starting new service.        |");
-            Console.WriteLine("| stop <Service>                         | Use for stopping the running service.|");
-            Console.WriteLine("| status                                 | Display all of the running services. |");
-            Console.WriteLine("| exit                                   | Close all services and exit program. |");
-            Console.WriteLine("=================================================================================");
+            Console.WriteLine("=============================================================================");
+            Console.WriteLine("================================:: Command ::================================");
+            Console.WriteLine("=============================================================================");
+            Console.WriteLine("| start <Service> <IP:PORT,duration> | Use for starting new service.        |");
+            Console.WriteLine("| stop <Service>                     | Use for stopping the running service.|");
+            Console.WriteLine("| status                             | Display all of the running services. |");
+            Console.WriteLine("| exit                               | Close all services and exit program. |");
+            Console.WriteLine("=============================================================================");
+        }
+
+        private void version() {
+            Console.WriteLine("Application : {0}", APP_NAME);
+            Console.WriteLine("Version     : {0}", APP_VERSION);
+            Console.WriteLine("Description : {0}\n", APP_DESC);
         }
     }
 }
