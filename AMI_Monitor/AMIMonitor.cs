@@ -18,7 +18,6 @@ namespace AMI_Monitor
     {   
         private CultureInfo cultureEN;
         private List<AMIServer> list_AMIServer = new List<AMIServer>();
-        private AvailableInfo info;
         private LinkedList<Task> allTask = new LinkedList<Task>();
         static bool shutdownStatus = false;
         static String lineToken = "5MIkfmCenOQ57YoCCq5F2pg0DycCfLjP5B3IdrUbxKs";
@@ -66,9 +65,11 @@ namespace AMI_Monitor
             this.WriteLog(amiServer, "Initiailize Service="+amiServer.Name+", Host:" + amiServer.Host + ", Port="+amiServer.Port+", DurationTime="+amiServer.DurationTime);
             while (amiServer.State == AMIServer.state_enum.running)
             {
-                Thread.Sleep(1000);
+                AvailableInfo info = null;
+                Thread.Sleep(500);
                 DateTime dateTime = DateTime.Now;
                 double diff = dateTime.Subtract(amiServer.TimeStmap).TotalSeconds;
+
                 if (diff >= amiServer.DurationTime ) {
                     amiServer.TimeStmap = DateTime.Now;
                     Console.WriteLine("Servcie {0} sending request", amiServer.Name);
@@ -210,6 +211,12 @@ namespace AMI_Monitor
             {
                 String input = Console.ReadLine();
                 String[] cmd = input.Split(' ');
+
+                if (cmd.Length == 0) {
+                    help();
+                    continue;
+                }
+
                 switch (cmd[0])
                 {
                     case "status":
@@ -228,7 +235,7 @@ namespace AMI_Monitor
                     case "start":
                         if (cmd.Length >= 2)
                         {
-                            start(cmd[1]);
+                            start(cmd[1], cmd[2]);
                         }
                         else
                         {
@@ -262,7 +269,17 @@ namespace AMI_Monitor
             }
         }
 
-        private void start(String service) { }
+        private void start(String service, String address) {
+            Console.WriteLine("Service : " + service+" address"+address);
+            String[] settings = address.Split(',');
+            String[] host_port = settings[(int)AMIServer.config_en.address].Split(':');
+            AMIServer amiServer = new AMIServer(service, host_port[(int)AMIServer.config_en.hostname], int.Parse(host_port[(int)AMIServer.config_en.port]), int.Parse(settings[(int)AMIServer.config_en.durationTime]));
+            list_AMIServer.Add(amiServer);
+            amiServer.State = AMIServer.state_enum.running;
+            Task T = new Task(checkAMIServer, amiServer);
+            allTask.AddLast(T);
+            T.Start();
+        }
 
         private void stop(String service) {
             foreach (Task T in allTask)
@@ -279,13 +296,14 @@ namespace AMI_Monitor
         }
 
         private void help() {
-            Console.WriteLine("=========================================================");
-            Console.WriteLine("======================:: Command ::======================");
-            Console.WriteLine("| start <Service>| Use for starting new service.        |");
-            Console.WriteLine("| stop <Service> | Use for stopping the running service.|");
-            Console.WriteLine("| status         | Display all of the running services. |");
-            Console.WriteLine("| exit           | Close all service and exit program.  |");
-            Console.WriteLine("=========================================================");
+            Console.WriteLine("=================================================================================");
+            Console.WriteLine("==================================:: Command ::==================================");
+            Console.WriteLine("=================================================================================");
+            Console.WriteLine("| start <Service> <IP:PORT,durationTime> | Use for starting new service.        |");
+            Console.WriteLine("| stop <Service>                         | Use for stopping the running service.|");
+            Console.WriteLine("| status                                 | Display all of the running services. |");
+            Console.WriteLine("| exit                                   | Close all services and exit program. |");
+            Console.WriteLine("=================================================================================");
         }
     }
 }
