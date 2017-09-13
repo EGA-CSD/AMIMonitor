@@ -17,7 +17,7 @@ namespace AMI_Monitor
     class AMI_Monitor
     {
         public static String APP_NAME = "AMI Monitoring";
-        public static String APP_VERSION = "1.0.0";
+        public static String APP_VERSION = "1.0.1";
         public static String APP_DESC = "Initialize AMI Server Monitoring";
 
         private CultureInfo cultureEN;
