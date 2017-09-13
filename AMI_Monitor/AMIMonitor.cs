@@ -49,11 +49,21 @@ namespace AMI_Monitor
                 String value = ConfigurationManager.AppSettings[key];
                 if (key != "token")
                 {
+                    // <!--key= servicename, value=<<ip|host>:<port>,<durationTime>,<<excep-start>-<excep-end>>-->
+                    // <key="Service1" value="127.0.0.1:9090,10,01:30:00-20:00:00" />
                     String[] values = value.Split(',');
                     String[] host_port = values[(int)AMIServer.config_en.address].Split(':');
-                    String str = "key=" + key + ", value=" + value + " ==> host=" + host_port[(int)AMIServer.config_en.hostname] + ", port=" + host_port[(int)AMIServer.config_en.port] + ", duration time=" + values[(int)AMIServer.config_en.durationTime];
+                    String[] except_time = values[(int)AMIServer.config_en.exception].Split('-');
+                    TimeSpan start = TimeSpan.Parse(except_time[(int)AMIServer.config_en.excpetional_start_time]);
+                    TimeSpan end = TimeSpan.Parse(except_time[(int)AMIServer.config_en.excpetional_end_time]);
+                    String str = "key=" + key + ", value=" + value + " ==> host=" + host_port[(int)AMIServer.config_en.hostname] + ", port=" + host_port[(int)AMIServer.config_en.port] + ", duration time=" + values[(int)AMIServer.config_en.durationTime] + ", exception: ["+except_time[(int)AMIServer.config_en.excpetional_start_time]+"-"+except_time[(int)AMIServer.config_en.excpetional_end_time]+"]";
                     Console.WriteLine(str);
-                    this.list_AMIServer.Add(new AMIServer(key, host_port[(int)AMIServer.config_en.hostname], int.Parse(host_port[(int)AMIServer.config_en.port]), int.Parse(values[(int)AMIServer.config_en.durationTime])));
+                    this.list_AMIServer.Add(new AMIServer(key, 
+                                                            host_port[(int)AMIServer.config_en.hostname], 
+                                                            int.Parse(host_port[(int)AMIServer.config_en.port]), 
+                                                            int.Parse(values[(int)AMIServer.config_en.durationTime]),
+                                                            start,
+                                                            end));
                 }
                 else {
                     Console.WriteLine("Key={0} value={1}", key, value);
@@ -74,8 +84,11 @@ namespace AMI_Monitor
                 Thread.Sleep(500);
                 DateTime dateTime = DateTime.Now;
                 double diff = dateTime.Subtract(amiServer.TimeStmap).TotalSeconds;
-
-                if (diff >= amiServer.DurationTime ) {
+                TimeSpan timeSpand = dateTime.TimeOfDay;
+                if (diff >= amiServer.DurationTime 
+                    && !(amiServer.Exceptional_start_time < timeSpand && timeSpand < amiServer.Exceptional_end_time)
+                    ) {
+                    Console.WriteLine("{0} < {1} < {2}", amiServer.Exceptional_start_time, timeSpand, amiServer.Exceptional_end_time);
                     amiServer.TimeStmap = DateTime.Now;
                     Console.WriteLine("Servcie {0} sending request", amiServer.Name);
                     try
