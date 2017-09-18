@@ -16,14 +16,16 @@ This software will be used for checking status of AMI Proxy Server and notifying
    ```
  - Add AMI Proxy Server in order to monitor.
    - Format:
+   
      **DurationTime** is the time waiting for sending next request.
+     **BeginExceptTime-EndExceptTime** is excpetional time in order not to send request to the AMI Proxy Server.
    ```xml
-   <add key="Service_name" value="IP:PORT,DurationTime" />
+   <add key="Service_name" value="IP:PORT,DurationTime,BeginExceptTime-EndExceptTime" />
    ```
    - Example:
    ```xml
-   <add key="service1" value="192.168.243.137:59000,30" />
-   <add key="service2" value="192.168.243.137:59001,60" />
+   <add key="service1" value="192.168.243.137:59000,30,01:00:00-07:00:00" />
+   <add key="service2" value="192.168.243.137:59001,60,08:00:00-09:00:00" />
    ```
 ## Example of Configuration
    ```xml
@@ -35,9 +37,9 @@ This software will be used for checking status of AMI Proxy Server and notifying
         <!-- for production : TRp6byyCsJG7S2poh5ON3zdH88SSm3LMffZ1fXy8o1H -->
         <!-- for Test : 5MIkfmCenOQ57YoCCq5F2pg0DycCfLjP5B3IdrUbxKs-->
         <add key="token" value="5MIkfmCenOQ57YoCCq5F2pg0DycCfLjP5B3IdrUbxKs"></add>
-        <add key="service1" value="192.168.243.137:59000,30" />
-        <add key="service2" value="192.168.243.137:59001,60" />
-        <add key="service3" value="192.168.243.137:59002,120" />
+        <add key="service1" value="192.168.243.137:59000,30,01:00:00-07:00:00" />
+        <add key="service2" value="192.168.243.137:59001,60,01:00:00-07:00:00" />
+        <add key="service3" value="192.168.243.137:59002,120,01:00:00-07:00:00" />
       </appSettings>
     </configuration>
    ```
